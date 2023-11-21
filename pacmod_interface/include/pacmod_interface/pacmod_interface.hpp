@@ -69,7 +69,7 @@ private:
   typedef message_filters::sync_policies::ApproximateTime<
     pacmod3_msgs::msg::SystemRptFloat, pacmod3_msgs::msg::WheelSpeedRpt,
     pacmod3_msgs::msg::SystemRptFloat, pacmod3_msgs::msg::SystemRptFloat,
-    pacmod3_msgs::msg::SystemRptInt, pacmod3_msgs::msg::SystemRptInt, pacmod3_msgs::msg::GlobalRpt>
+    pacmod3_msgs::msg::SystemRptInt, pacmod3_msgs::msg::GlobalRpt>
     PacmodFeedbacksSyncPolicy;
 
   /* subscribers */
@@ -212,7 +212,6 @@ private:
     const pacmod3_msgs::msg::SystemRptFloat::ConstSharedPtr accel_rpt,
     const pacmod3_msgs::msg::SystemRptFloat::ConstSharedPtr brake_rpt,
     const pacmod3_msgs::msg::SystemRptInt::ConstSharedPtr gear_cmd_rpt,
-    const pacmod3_msgs::msg::SystemRptInt::ConstSharedPtr turn_rpt,
     const pacmod3_msgs::msg::GlobalRpt::ConstSharedPtr global_rpt);
 
   /*  functions */

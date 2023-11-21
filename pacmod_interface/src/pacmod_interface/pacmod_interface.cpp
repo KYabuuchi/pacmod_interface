@@ -108,20 +108,19 @@ PacmodInterface::PacmodInterface()
     this, "/pacmod/brake_rpt");
   shift_rpt_sub_ = std::make_unique<message_filters::Subscriber<pacmod3_msgs::msg::SystemRptInt>>(
     this, "/pacmod/shift_rpt");
-  turn_rpt_sub_ = std::make_unique<message_filters::Subscriber<pacmod3_msgs::msg::SystemRptInt>>(
-    this, "/pacmod/turn_rpt");
+  // turn_rpt_sub_ = std::make_unique<message_filters::Subscriber<pacmod3_msgs::msg::SystemRptInt>>(
+  //   this, "/pacmod/turn_rpt");
   global_rpt_sub_ = std::make_unique<message_filters::Subscriber<pacmod3_msgs::msg::GlobalRpt>>(
     this, "/pacmod/global_rpt");
 
   pacmod_feedbacks_sync_ =
     std::make_unique<message_filters::Synchronizer<PacmodFeedbacksSyncPolicy>>(
       PacmodFeedbacksSyncPolicy(10), *steer_wheel_rpt_sub_, *wheel_speed_rpt_sub_, *accel_rpt_sub_,
-      *brake_rpt_sub_, *shift_rpt_sub_, *turn_rpt_sub_, *global_rpt_sub_);
+      *brake_rpt_sub_, *shift_rpt_sub_, *global_rpt_sub_);
 
   pacmod_feedbacks_sync_->registerCallback(std::bind(
     &PacmodInterface::callbackPacmodRpt, this, std::placeholders::_1, std::placeholders::_2,
-    std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6,
-    std::placeholders::_7));
+    std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6));
 
   /* publisher */
   // To pacmod
@@ -247,7 +246,6 @@ void PacmodInterface::callbackPacmodRpt(
   const pacmod3_msgs::msg::SystemRptFloat::ConstSharedPtr accel_rpt,
   const pacmod3_msgs::msg::SystemRptFloat::ConstSharedPtr brake_rpt,
   const pacmod3_msgs::msg::SystemRptInt::ConstSharedPtr shift_rpt,
-  const pacmod3_msgs::msg::SystemRptInt::ConstSharedPtr turn_rpt,
   const pacmod3_msgs::msg::GlobalRpt::ConstSharedPtr global_rpt)
 {
   is_pacmod_rpt_received_ = true;
@@ -257,7 +255,8 @@ void PacmodInterface::callbackPacmodRpt(
   brake_rpt_ptr_ = brake_rpt;
   gear_cmd_rpt_ptr_ = shift_rpt;
   global_rpt_ptr_ = global_rpt;
-  turn_rpt_ptr_ = turn_rpt;
+auto turn_rpt= std::make_shared<pacmod3_msgs::msg::SystemRptInt>();
+  turn_rpt_ptr_=turn_rpt; 
 
   is_pacmod_enabled_ =
     steer_wheel_rpt_ptr_->enabled && accel_rpt_ptr_->enabled && brake_rpt_ptr_->enabled;
