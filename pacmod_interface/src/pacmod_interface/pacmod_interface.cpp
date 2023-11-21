@@ -108,8 +108,8 @@ PacmodInterface::PacmodInterface()
     this, "/pacmod/brake_rpt");
   shift_rpt_sub_ = std::make_unique<message_filters::Subscriber<pacmod3_msgs::msg::SystemRptInt>>(
     this, "/pacmod/shift_rpt");
-  // turn_rpt_sub_ = std::make_unique<message_filters::Subscriber<pacmod3_msgs::msg::SystemRptInt>>(
-  //   this, "/pacmod/turn_rpt");
+  turn_rpt_sub_ = create_subscription<pacmod3_msgs::msg::SystemRptInt>(
+    "/pacmod/turn_rpt", 10, std::bind(&PacmodInterface::callbackTurnRpt, this, _1));
   global_rpt_sub_ = std::make_unique<message_filters::Subscriber<pacmod3_msgs::msg::GlobalRpt>>(
     this, "/pacmod/global_rpt");
 
@@ -233,6 +233,29 @@ void PacmodInterface::onControlModeRequest(
   return;
 }
 
+void PacmodInterface::callbackTurnRpt(
+  const pacmod3_msgs::msg::SystemRptInt::ConstSharedPtr turn_rpt)
+{
+  turn_rpt_ptr_ = turn_rpt;
+
+  std_msgs::msg::Header header;
+  header.frame_id = base_frame_id_;
+  header.stamp = get_clock()->now();
+
+  /* publish current turn signal */
+  {
+    autoware_auto_vehicle_msgs::msg::TurnIndicatorsReport turn_msg;
+    turn_msg.stamp = header.stamp;
+    turn_msg.report = toAutowareTurnIndicatorsReport(*turn_rpt);
+    turn_indicators_status_pub_->publish(turn_msg);
+
+    autoware_auto_vehicle_msgs::msg::HazardLightsReport hazard_msg;
+    hazard_msg.stamp = header.stamp;
+    hazard_msg.report = toAutowareHazardLightsReport(*turn_rpt);
+    hazard_lights_status_pub_->publish(hazard_msg);
+  }
+}
+
 void PacmodInterface::callbackRearDoor(
   const pacmod3_msgs::msg::SystemRptInt::ConstSharedPtr rear_door_rpt)
 {
@@ -255,8 +278,6 @@ void PacmodInterface::callbackPacmodRpt(
   brake_rpt_ptr_ = brake_rpt;
   gear_cmd_rpt_ptr_ = shift_rpt;
   global_rpt_ptr_ = global_rpt;
-auto turn_rpt= std::make_shared<pacmod3_msgs::msg::SystemRptInt>();
-  turn_rpt_ptr_=turn_rpt; 
 
   is_pacmod_enabled_ =
     steer_wheel_rpt_ptr_->enabled && accel_rpt_ptr_->enabled && brake_rpt_ptr_->enabled;
@@ -338,25 +359,14 @@ auto turn_rpt= std::make_shared<pacmod3_msgs::msg::SystemRptInt>();
     actuation_status.status.steer_status = current_steer;
     actuation_status_pub_->publish(actuation_status);
   }
-
-  /* publish current turn signal */
-  {
-    autoware_auto_vehicle_msgs::msg::TurnIndicatorsReport turn_msg;
-    turn_msg.stamp = header.stamp;
-    turn_msg.report = toAutowareTurnIndicatorsReport(*turn_rpt);
-    turn_indicators_status_pub_->publish(turn_msg);
-
-    autoware_auto_vehicle_msgs::msg::HazardLightsReport hazard_msg;
-    hazard_msg.stamp = header.stamp;
-    hazard_msg.report = toAutowareHazardLightsReport(*turn_rpt);
-    hazard_lights_status_pub_->publish(hazard_msg);
-  }
 }
 
 void PacmodInterface::publishCommands()
 {
   /* guard */
-  if (!actuation_cmd_ptr_ || !control_cmd_ptr_ || !is_pacmod_rpt_received_ || !gear_cmd_ptr_) {
+  if (
+    !actuation_cmd_ptr_ || !control_cmd_ptr_ || !is_pacmod_rpt_received_ || !gear_cmd_ptr_ ||
+    !turn_rpt_ptr_) {
     RCLCPP_INFO_THROTTLE(
       get_logger(), *get_clock(), std::chrono::milliseconds(1000).count(),
       "vehicle_cmd = %d, pacmod3_msgs = %d", actuation_cmd_ptr_ != nullptr,
